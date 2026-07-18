@@ -1,6 +1,21 @@
 [package]
-name = "basalt-sql"
+name = "basaltsql"
 version = "0.1.0"
 edition = "2024"
+description = "An implementation of an SQL query engine from scratch"
+license = "MIT"
+
+[lib]
+name = "basaltsql"
+path = "src/lib.rs"
+
+[[bin]]
+name = "basaltsql"
+path = "src/main.rs"
 
 [dependencies]
+thiserror = "2.0.18"
+clap = { version = "4.6.2", features = ["derive"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
