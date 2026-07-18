@@ -1,9 +1,11 @@
-//! Tokenizer: turns raw SQL source text into a stream of `Token`s.
-//! Lexical rules only — no grammar awareness.
+//! Tokenizer: turns raw SQL source text into a stream of [Token]s.
+//! Purely lexical analysis with no grammar.
 
 pub mod error;
 pub use error::{LexError, Result};
 
+/// The category of a single token, plus any data it carries (identifier
+/// text, literal value, etc).
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Select,
@@ -20,8 +22,14 @@ pub enum TokenKind {
     And,
     Or,
     Not,
+    /// A user-defined name (table, column, etc). This can be anything
+    /// alphabetic that isn't a reserved keyword.
     Ident(String),
+    /// A numeric literal stored as the original source text (not yet
+    /// parsed into [i64] or [f64]).
     Number(String),
+    /// A single-quoted string literal with quotes stripped and
+    /// contents unescaped.
     StringLit(String),
     Comma,
     Star,
@@ -34,9 +42,12 @@ pub enum TokenKind {
     LtEq,
     Gt,
     GtEq,
+    /// Marks the end of input. Always the last token produced.
     Eof,
 }
 
+/// A single lexical token: its kind plus the byte offset in the source
+/// where it starts.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
@@ -49,16 +60,23 @@ impl Token {
     }
 }
 
+/// Converts SQL source text into a stream of [Token]s. Holds a cursor
+/// (`pos`) into the source and advances it one token at a time.
 pub struct Lexer<'a> {
     src: &'a str,
     pos: usize,
 }
 
 impl<'a> Lexer<'a> {
+    /// Creates a lexer over `src` ran by calling [Lexer::tokenize] to run it.
     pub fn new(src: &'a str) -> Self {
         Self { src, pos: 0 }
     }
 
+    /// Consumes the lexer and tokenizes the entire input returning all
+    /// tokens including a trailing [TokenKind::Eof]. Fails on the
+    /// first lexical error encountered (no error recovery and the parser
+    /// stage never sees a partial/invalid token stream).
     pub fn tokenize(mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
         loop {
@@ -72,6 +90,7 @@ impl<'a> Lexer<'a> {
         Ok(tokens)
     }
 
+    /// Scans and returns the next token then advances the cursor past it.
     fn next_token(&mut self) -> Result<Token> {
         self.skip_whitespace_and_comments();
         let start = self.pos;
@@ -116,10 +135,14 @@ impl<'a> Lexer<'a> {
         Ok(Token::new(kind, start))
     }
 
+    /// Returns the next character without consuming it.
     fn peek(&self) -> Option<char> {
         self.src[self.pos..].chars().next()
     }
 
+    /// Advances past whitespace and `--`-style line comments. Called
+    /// before scanning every token so neither has to be handled inside
+    /// individual token-reading functions.
     fn skip_whitespace_and_comments(&mut self) {
         while let Some(c) = self.peek() {
             if c.is_whitespace() {
@@ -137,6 +160,8 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Reads a `'...'` string literal, starting at the opening quote.
+    /// Does not yet support escaping.
     fn read_string(&mut self) -> Result<TokenKind> {
         let start = self.pos;
         self.pos += 1; // opening quote
@@ -157,6 +182,7 @@ impl<'a> Lexer<'a> {
         Ok(TokenKind::StringLit(s))
     }
 
+    /// Reads a numeric literal.
     fn read_number(&mut self) -> TokenKind {
         let start = self.pos;
         while let Some(c) = self.peek() {
@@ -169,6 +195,9 @@ impl<'a> Lexer<'a> {
         TokenKind::Number(self.src[start..self.pos].to_string())
     }
 
+    /// Reads an identifier or keyword and classifies it. Reserved words
+    /// are matched case-insensitively against `TokenKind` variants,
+    /// everything else becomes `TokenKind::Ident`.
     fn read_ident_or_keyword(&mut self) -> TokenKind {
         let start = self.pos;
         while let Some(c) = self.peek() {
