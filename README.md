@@ -15,13 +15,18 @@ and understand how the pieces fit together.
 - [x] `catalog`: table/column schema registration and lookup
 - [x] `lexer`: full tokeniser with keywords, identifiers, numeric/string
     literals, punctuation, and `--` comments
-- [ ] `parser`: not started
+- [x] `parser`: recursive-descent parser producing `Statement`s with a full
+    expression parser: logical (`OR`/`AND`/`NOT`), comparison, and
+    arithmetic (with correct precedence, left-associativity, unary
+    minus, and parenthesization)
+- [ ] `analyzer`: bind statements against the `Catalog`
+- [ ] `executor`: run bound statements against in-memory storage
 
 ## Architecture
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the pipeline design and the
-reasoning behind the module boundaries and error-handling approach.
-
+reasoning behind the module boundaries and error-handling approach. It
+also lists known gaps
 
 ## Getting started
 
