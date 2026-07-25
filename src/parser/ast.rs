@@ -34,22 +34,18 @@ pub enum SelectColumns {
     List(Vec<String>),
 }
 
-/// `INSERT INTO <table> VALUES (<values>)`
-///
-/// Values are positional. Matching them up against the table's
-/// declared columns (count, types) is left to the analyser, not the
-/// parser.
+/// `INSERT INTO <table> VALUES (<expr> ...)`
 #[derive(Debug, Clone, PartialEq)]
 pub struct InsertStatement {
     pub table: String,
-    pub values: Vec<Value>,
+    pub values: Vec<Expr>,
 }
 
-/// `UPDATE <table> SET <col> = <value>, ... [WHERE <filter>]`
+/// `UPDATE <table> SET <col> = <expr>, ... [WHERE <filter>]`
 #[derive(Debug, Clone, PartialEq)]
 pub struct UpdateStatement {
     pub table: String,
-    pub assignments: Vec<(String, Value)>,
+    pub assignments: Vec<(String, Expr)>,
     pub filter: Option<Expr>,
 }
 

@@ -35,10 +35,6 @@ pub enum ParseError {
     #[error("invalid numeric literal '{text}' at offset {offset}")]
     InvalidNumber { text: String, offset: usize },
 
-    /// Unary `-` was applied to a non-numeric literal, e.g. `-'x'`.
-    #[error("cannot negate non-numeric literal at offset {offset}")]
-    NonNumericNegation { offset: usize },
-
     /// A column type name in a `CREATE TABLE` declaration wasn't one
     /// of the recognised [`DataType`](crate::types::DataType) names.
     /// Type names aren't reserved keywords in the lexer, so any

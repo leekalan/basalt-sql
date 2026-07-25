@@ -99,9 +99,9 @@ fn parses_insert() {
         vec![Statement::Insert(InsertStatement {
             table: "t".into(),
             values: vec![
-                Value::Integer(1),
-                Value::Text("x".into()),
-                Value::Float(2.5),
+                Expr::Literal(Value::Integer(1)),
+                Expr::Literal(Value::Text("x".into())),
+                Expr::Literal(Value::Float(2.5)),
             ],
         })]
     );
@@ -115,8 +115,8 @@ fn parses_update() {
         vec![Statement::Update(UpdateStatement {
             table: "t".into(),
             assignments: vec![
-                ("a".into(), Value::Integer(1)),
-                ("b".into(), Value::Text("y".into())),
+                ("a".into(), Expr::Literal(Value::Integer(1))),
+                ("b".into(), Expr::Literal(Value::Text("y".into()))),
             ],
             filter: Some(Expr::BinaryOp {
                 left: Box::new(Expr::Column("a".into())),
@@ -293,18 +293,12 @@ fn parses_negative_literal_in_insert() {
         stmts,
         vec![Statement::Insert(InsertStatement {
             table: "t".into(),
-            values: vec![Value::Integer(-1), Value::Float(-2.5)],
+            values: vec![
+                Expr::Neg(Box::new(Expr::Literal(Value::Integer(1)))),
+                Expr::Neg(Box::new(Expr::Literal(Value::Float(2.5)))),
+            ],
         })]
     );
-}
-
-#[test]
-fn errors_on_negating_string_literal() {
-    let tokens = Lexer::new("INSERT INTO t VALUES (-'x');")
-        .tokenise()
-        .unwrap();
-    let err = Parser::new(tokens).parse().unwrap_err();
-    assert!(matches!(err, ParseError::NonNumericNegation { .. }));
 }
 
 #[test]
@@ -324,4 +318,34 @@ impl Expr {
             right: Box::new(Expr::Literal(Value::Integer(n))),
         }
     }
+}
+
+#[test]
+fn parses_computed_expression_in_insert_and_set() {
+    let stmts = parse("INSERT INTO t VALUES (1 + 2); UPDATE t SET price = price * 2;");
+    assert_eq!(
+        stmts,
+        vec![
+            Statement::Insert(InsertStatement {
+                table: "t".into(),
+                values: vec![Expr::BinaryOp {
+                    left: Box::new(Expr::Literal(Value::Integer(1))),
+                    op: BinaryOp::Add,
+                    right: Box::new(Expr::Literal(Value::Integer(2))),
+                }],
+            }),
+            Statement::Update(UpdateStatement {
+                table: "t".into(),
+                assignments: vec![(
+                    "price".into(),
+                    Expr::BinaryOp {
+                        left: Box::new(Expr::Column("price".into())),
+                        op: BinaryOp::Mul,
+                        right: Box::new(Expr::Literal(Value::Integer(2))),
+                    },
+                )],
+                filter: None,
+            }),
+        ]
+    );
 }

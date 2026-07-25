@@ -49,20 +49,8 @@ list is fully consumed by `parse_select_columns` before expression
 parsing ever begins, so the parser never has to guess which meaning is
 intended based on context.
 
-### `VALUES` / `SET` take literals, not expressions
- 
-`InsertStatement.values` and `UpdateStatement.assignments` are typed as
-`Vec<Value>` / `Vec<(String, Value)>`, not `Vec<Expr>`. This is
-deliberate for now: there's no evaluator yet, so accepting a full
-expression there (e.g. `SET price = price + 1`) would parse but have
-nowhere to be evaluated. They do accept a leading unary `-` (via
-`parse_signed_literal`) since negative literals are common enough to
-support directly. Upgrading these to `Expr` is planned but deferred
-until the executor exists — see Known Gaps.
-
-
 ## Known Gaps
-
+ 
 - `Row` is not validated against `TableSchema` anywhere.
 - `Value`'s derived `PartialEq` uses IEEE-754 float equality (`NaN !=
   NaN`, no epsilon tolerance). Unaddressed until arithmetic /
@@ -84,8 +72,6 @@ until the executor exists — see Known Gaps.
   in scope than the arithmetic/comparison work done so far.
 - No literal support for `NULL` or boolean (`TRUE`/`FALSE`) values in
   expressions or `INSERT`/`UPDATE` — only numbers and strings.
-- `SET`/`VALUES` can't take computed expressions (see Design
-  Decisions above) — only literals, optionally negated.
 - `Catalog` has no constraint enforcement (`NOT NULL`, `UNIQUE`,
   `PRIMARY KEY`, etc. are parsed into `ColumnDecl.nullable` but never
   checked against actual rows) and no multi-schema namespacing.

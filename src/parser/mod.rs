@@ -9,12 +9,12 @@
 //! statement   := select | insert | update | delete | create_table
 //!
 //! select      := SELECT (STAR | ident (',' ident)*) FROM ident where?
-//! insert      := INSERT INTO ident VALUES '(' literal (',' literal)* ')'
+//! insert      := INSERT INTO ident VALUES '(' expr (',' expr)* ')'
 //! update      := UPDATE ident SET assignment (',' assignment)* where?
 //! delete      := DELETE FROM ident where?
 //! create_table:= CREATE TABLE ident '(' column_decl (',' column_decl)* ')'
 //!
-//! assignment  := ident '=' literal
+//! assignment  := ident '=' expr
 //! column_decl := ident type_name (NOT NULL)?
 //! where       := WHERE expr
 //!
@@ -126,10 +126,10 @@ impl Parser {
         let table = self.expect_ident()?;
         self.expect(TokenKind::Values, "VALUES")?;
         self.expect(TokenKind::LParen, "(")?;
-        let mut values = vec![self.parse_signed_literal()?];
+        let mut values = vec![self.parse_expr()?];
         while self.check(&TokenKind::Comma) {
             self.advance();
-            values.push(self.parse_signed_literal()?);
+            values.push(self.parse_expr()?);
         }
         self.expect(TokenKind::RParen, ")")?;
         Ok(InsertStatement { table, values })
@@ -152,10 +152,10 @@ impl Parser {
         })
     }
 
-    fn parse_assignment(&mut self) -> Result<(String, Value)> {
+    fn parse_assignment(&mut self) -> Result<(String, Expr)> {
         let column = self.expect_ident()?;
         self.expect(TokenKind::Eq, "=")?;
-        let value = self.parse_signed_literal()?;
+        let value = self.parse_expr()?;
         Ok((column, value))
     }
 
@@ -374,19 +374,6 @@ impl Parser {
         }
     }
 
-    /// Like [`Parser::parse_literal`] but also accepts a leading `-` for
-    /// negative numeric literals. Used in contexts (`VALUES`, `SET`) that
-    /// take a concrete `Value` rather than a full `Expr`.
-    fn parse_signed_literal(&mut self) -> Result<Value> {
-        if self.check(&TokenKind::Sub) {
-            let offset = self.peek().offset;
-            self.advance();
-            negate_value(self.parse_literal()?, offset)
-        } else {
-            self.parse_literal()
-        }
-    }
-
     fn parse_literal(&mut self) -> Result<Value> {
         let tok = self.peek().clone();
         match &tok.kind {
@@ -487,13 +474,5 @@ fn parse_number_literal(text: &str, offset: usize) -> Result<Value> {
                 text: text.to_string(),
                 offset,
             })
-    }
-}
-
-fn negate_value(value: Value, offset: usize) -> Result<Value> {
-    match value {
-        Value::Integer(n) => Ok(Value::Integer(-n)),
-        Value::Float(f) => Ok(Value::Float(-f)),
-        _ => Err(ParseError::NonNumericNegation { offset }),
     }
 }

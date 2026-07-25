@@ -23,10 +23,6 @@ All notable changes to this project are documented here.
   parenthesizable, sitting between comparison and unary in precedence
 - `parser`: unary minus (`Expr::Neg`), right-recursive so `- -a`
   parses as double negation
-- `parser`: `parse_signed_literal`, allowing a leading `-` in `VALUES`
-  and `SET` (e.g. `INSERT INTO t VALUES (-1, -2.5)`)
-- `parser::error::ParseError::NonNumericNegation` for `-'x'`-style
-  negation of a non-numeric literal
 - Lexer test coverage for the two-character lookahead logic (`<=` vs
   `<`, `!=`/`<>` both mapping to `NotEq`, operator-at-EOF), keyword
   case-insensitivity, and comment-boundary edge cases
@@ -44,8 +40,6 @@ All notable changes to this project are documented here.
  
 - No `%` or `||` operators.
 - No `LIKE`/`IN`/`BETWEEN`/`IS NULL`.
-- `SET`/`VALUES` still take literals only, not full expressions (e.g.
-  `SET price = price + 1` doesn't parse yet) — see `ARCHITECTURE.md`.
 - `5--3` lexes as `5` + a swallowed comment, not `5 - -3`. Documented,
   not planned to change.
 
