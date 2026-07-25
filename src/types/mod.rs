@@ -1,9 +1,9 @@
 //! Types: The layout and instance of data in a table.
-//! 
+//!
 //! - [DataType] describes what a column *can* hold (schema-level),
 //! - [Value] is what a cell *actually* holds (runtime data) and `Row` is
 //!   an ordered collection of [Value]s.
-//! 
+//!
 //! Names live in [TableSchema](crate::catalog::TableSchema),
 //! not on the row itself.
 

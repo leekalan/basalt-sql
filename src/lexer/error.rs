@@ -5,7 +5,7 @@ use thiserror::Error;
 /// Result alias local to the lexer module.
 pub type Result<T> = std::result::Result<T, LexError>;
 
-/// All ways tokenizing can fail. Each variant carries the byte offset
+/// All ways tokenising can fail. Each variant carries the byte offset
 /// into the source string where the failure occurred, so callers can point
 /// at the exact character.
 #[derive(Debug, Error, PartialEq, Eq, Clone)]

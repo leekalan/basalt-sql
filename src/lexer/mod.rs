@@ -1,8 +1,11 @@
-//! Tokenizer: turns raw SQL source text into a stream of [Token]s.
+//! Tokeniser: turns raw SQL source text into a stream of [Token]s.
 //! Purely lexical analysis with no grammar.
 
-pub mod error;
+mod error;
 pub use error::{LexError, Result};
+
+#[cfg(test)]
+mod tests;
 
 /// The category of a single token, plus any data it carries (identifier
 /// text, literal value, etc).
@@ -42,6 +45,9 @@ pub enum TokenKind {
     LtEq,
     Gt,
     GtEq,
+    Add,
+    Sub,
+    Div,
     /// Marks the end of input. Always the last token produced.
     Eof,
 }
@@ -68,16 +74,16 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    /// Creates a lexer over `src` ran by calling [Lexer::tokenize] to run it.
+    /// Creates a lexer over `src` ran by calling [Lexer::tokenise] to run it.
     pub fn new(src: &'a str) -> Self {
         Self { src, pos: 0 }
     }
 
-    /// Consumes the lexer and tokenizes the entire input returning all
+    /// Consumes the lexer and tokenises the entire input returning all
     /// tokens including a trailing [TokenKind::Eof]. Fails on the
     /// first lexical error encountered (no error recovery and the parser
     /// stage never sees a partial/invalid token stream).
-    pub fn tokenize(mut self) -> Result<Vec<Token>> {
+    pub fn tokenise(mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
         loop {
             let token = self.next_token()?;
@@ -95,49 +101,69 @@ impl<'a> Lexer<'a> {
         self.skip_whitespace_and_comments();
         let start = self.pos;
 
-        let Some(c) = self.peek() else {
-            return Ok(Token::new(TokenKind::Eof, start));
-        };
+        'double: {
+            if let Some(cs) = self.peek_n(2) {
+                let kind = match cs {
+                    "<=" => TokenKind::LtEq,
+                    ">=" => TokenKind::GtEq,
+                    "!=" | "<>" => TokenKind::NotEq,
+                    _ => break 'double,
+                };
 
-        let kind = match c {
-            ',' => {
-                self.pos += 1;
-                TokenKind::Comma
+                self.pos += cs.len();
+                return Ok(Token::new(kind, start));
             }
-            '*' => {
-                self.pos += 1;
-                TokenKind::Star
-            }
-            '(' => {
-                self.pos += 1;
-                TokenKind::LParen
-            }
-            ')' => {
-                self.pos += 1;
-                TokenKind::RParen
-            }
-            ';' => {
-                self.pos += 1;
-                TokenKind::Semicolon
-            }
-            '=' => {
-                self.pos += 1;
-                TokenKind::Eq
-            }
-            '\'' => self.read_string()?,
-            c if c.is_ascii_digit() => self.read_number(),
-            c if c.is_alphabetic() || c == '_' => self.read_ident_or_keyword(),
-            other => {
-                return Err(LexError::unexpected_char(other, start));
-            }
-        };
+        }
 
-        Ok(Token::new(kind, start))
+        'single: {
+            if let Some(c) = self.peek() {
+                // Single Character Tokens
+                let kind = match c {
+                    ',' => TokenKind::Comma,
+                    '(' => TokenKind::LParen,
+                    ')' => TokenKind::RParen,
+                    '*' => TokenKind::Star,
+                    ';' => TokenKind::Semicolon,
+                    '=' => TokenKind::Eq,
+                    '<' => TokenKind::Lt,
+                    '>' => TokenKind::Gt,
+                    '+' => TokenKind::Add,
+                    '-' => TokenKind::Sub,
+                    '/' => TokenKind::Div,
+                    '\'' => return Ok(Token::new(self.read_string()?, start)),
+                    c if c.is_ascii_digit() => return Ok(Token::new(self.read_number(), start)),
+                    c if c.is_alphabetic() || c == '_' => {
+                        return Ok(Token::new(self.read_ident_or_keyword(), start));
+                    }
+                    _ => break 'single,
+                };
+
+                self.pos += c.len_utf8();
+                return Ok(Token::new(kind, start));
+            } else {
+                return Ok(Token::new(TokenKind::Eof, start));
+            }
+        }
+
+        Err(LexError::unexpected_char(self.peek().unwrap(), start))
     }
 
     /// Returns the next character without consuming it.
     fn peek(&self) -> Option<char> {
         self.src[self.pos..].chars().next()
+    }
+
+    fn peek_n(&self, n: usize) -> Option<&str> {
+        let len: usize = self.src[self.pos..]
+            .chars()
+            .take(n)
+            .map(|c| c.len_utf8())
+            .sum();
+        let s = &self.src[self.pos..self.pos + len];
+        if s.chars().count() != n {
+            return None;
+        }
+        Some(s)
     }
 
     /// Advances past whitespace and `--`-style line comments. Called
@@ -225,33 +251,5 @@ impl<'a> Lexer<'a> {
             "NOT" => TokenKind::Not,
             _ => TokenKind::Ident(word.to_string()),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use pretty_assertions::assert_eq;
-
-    use super::*;
-
-    #[test]
-    fn tokenizes_simple_select() {
-        let tokens = Lexer::new("SELECT * FROM t;").tokenize().unwrap();
-        assert_eq!(tokens.first().unwrap().kind, TokenKind::Select);
-        assert_eq!(tokens.last().unwrap().kind, TokenKind::Eof);
-    }
-
-    #[test]
-    fn errors_on_unexpected_char() {
-        let err = Lexer::new("SELECT $ FROM t;").tokenize().unwrap_err();
-        assert_eq!(err, LexError::UnexpectedChar { ch: '$', offset: 7 });
-    }
-
-    #[test]
-    fn errors_on_unterminated_string() {
-        let err = Lexer::new("SELECT * FROM t WHERE x = 'oops")
-            .tokenize()
-            .unwrap_err();
-        assert_eq!(err, LexError::UnterminatedString { offset: 26 });
     }
 }
