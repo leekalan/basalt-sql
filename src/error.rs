@@ -11,9 +11,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// It exists so callers outside a specific module only need to match one type.
 #[derive(Debug, Error)]
 pub enum Error {
-    /// A lexical error while tokenizing source SQL text.
+    /// A lexical error while tokenising source SQL text.
     #[error(transparent)]
     Lex(#[from] crate::lexer::LexError),
+
+    /// A syntax error while parsing a token stream into an AST.
+    #[error(transparent)]
+    Parse(#[from] crate::parser::ParseError),
 
     /// A wrapped standard I/O error, for future file-backed storage.
     #[error(transparent)]

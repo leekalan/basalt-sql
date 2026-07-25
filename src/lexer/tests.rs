@@ -1,4 +1,3 @@
-
 use pretty_assertions::assert_eq;
 
 use super::*;
@@ -83,7 +82,12 @@ fn keywords_are_case_insensitive() {
     let kinds: Vec<_> = tokens.iter().map(|t| t.kind.clone()).collect();
     assert_eq!(
         kinds,
-        vec![TokenKind::Select, TokenKind::From, TokenKind::Where, TokenKind::Eof]
+        vec![
+            TokenKind::Select,
+            TokenKind::From,
+            TokenKind::Where,
+            TokenKind::Eof
+        ]
     );
 }
 
@@ -112,7 +116,9 @@ fn malformed_number_is_a_single_token() {
 
 #[test]
 fn comment_does_not_consume_past_newline() {
-    let tokens = Lexer::new("SELECT 1 -- comment\nFROM t").tokenise().unwrap();
+    let tokens = Lexer::new("SELECT 1 -- comment\nFROM t")
+        .tokenise()
+        .unwrap();
     let kinds: Vec<_> = tokens.iter().map(|t| t.kind.clone()).collect();
     assert_eq!(
         kinds,

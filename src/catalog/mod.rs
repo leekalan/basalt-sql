@@ -7,7 +7,7 @@ use crate::types::DataType;
 use std::collections::HashMap;
 
 /// Metadata for a single column: its name, declared type, and whether
-/// `NULL` is permitted. `nullable` isn't enforced anywhere yet. 
+/// `NULL` is permitted. `nullable` isn't enforced anywhere yet.
 /// This is schema storage only for now.
 #[derive(Debug, Clone)]
 pub struct ColumnDef {
