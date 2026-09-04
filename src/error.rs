@@ -23,6 +23,14 @@ pub enum Error {
     #[error(transparent)]
     Analyse(#[from] crate::analyser::AnalyseError),
 
+    /// A runtime error while executing a query.
+    #[error(transparent)]
+    Storage(#[from] crate::storage::StorageError),
+
+    /// A runtime error while executing a query.
+    #[error(transparent)]
+    Exec(#[from] crate::executor::ExecError),
+
     /// A wrapped standard I/O error, for future file-backed storage.
     #[error(transparent)]
     Io(#[from] std::io::Error),
