@@ -321,21 +321,23 @@ fn eval_arith(op: BinaryOp, l: Value, r: Value) -> Result<Value> {
     }
     if let (Value::Integer(a), Value::Integer(b)) = (&l, &r) {
         let (a, b) = (*a, *b);
-        return match op {
-            BinaryOp::Add => Ok(Value::Integer(a.wrapping_add(b))),
-            BinaryOp::Sub => Ok(Value::Integer(a.wrapping_sub(b))),
-            BinaryOp::Mul => Ok(Value::Integer(a.wrapping_mul(b))),
+        let result = match op {
+            BinaryOp::Add => a.checked_add(b),
+            BinaryOp::Sub => a.checked_sub(b),
+            BinaryOp::Mul => a.checked_mul(b),
             BinaryOp::Div => {
                 if b == 0 {
-                    Err(ExecError::DivisionByZero)
-                } else {
-                    Ok(Value::Integer(a.wrapping_div(b)))
+                    return Err(ExecError::DivisionByZero);
                 }
+                a.checked_div(b)
             }
-            other => Err(ExecError::InternalTypeError(format!(
-                "eval_arith got non-arithmetic operator {other:?}"
-            ))),
+            other => {
+                return Err(ExecError::InternalTypeError(format!(
+                    "eval_arith got non-arithmetic operator {other:?}"
+                )))
+            }
         };
+        return result.map(Value::Integer).ok_or(ExecError::IntegerOverflow);
     }
     let (Some(a), Some(b)) = (as_f64(&l), as_f64(&r)) else {
         return Err(ExecError::InternalTypeError(format!(

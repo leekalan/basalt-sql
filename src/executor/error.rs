@@ -20,6 +20,10 @@ pub enum ExecError {
     #[error("division by zero")]
     DivisionByZero,
 
+    /// Integer overflow when adding or subtracting two integers.
+    #[error("integer overflow")]
+    IntegerOverflow,
+
     /// An operand's runtime type didn't match what the analyser's
     /// static type check should have already guaranteed. Should be
     /// unreachable in normal operation. Kept as a real error rather
