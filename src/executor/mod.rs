@@ -188,9 +188,8 @@ fn row_passes_filter(filter: Option<&BoundExpr>, row: &Row) -> Result<bool> {
 }
 
 /// Evaluates a bound expression against a row. Assumes the expression
-/// already passed analyser type checks, the one thing analysis
-/// **can't** catch statically is division by zero, so that's the only
-/// error well-typed input can actually produce here.
+/// already passed analyser type checks but handles those which cannot
+/// be checked statically.
 fn eval(expr: &BoundExpr, row: &Row) -> Result<Value> {
     match expr {
         BoundExpr::Column { index, .. } => Ok(row.values[*index].clone()),

@@ -1,6 +1,6 @@
 //! Database: owns a [`Catalog`] and [`Storage`] for a process's
 //! lifetime and runs the full pipeline (lex, parse, analyse, execute)
-//! for SQL text. This is the crate's main entry point; everything
+//! for SQL text. This is the crate's main entry point. Everything
 //! else is a stage this type wires together.
 
 use crate::analyser::Analyser;
@@ -51,8 +51,9 @@ impl Database {
         Ok(results)
     }
 
-    /// Read-only access to the current schema, e.g. for a future REPL
-    /// to print `\d table_name` style output.
+    /// Read-only access to the current schema. Not called anywhere
+    /// yet, exposed for schema introspection commands (e.g. `\d
+    /// table_name`) that the REPL in `main.rs` doesn't implement.
     pub fn catalog(&self) -> &Catalog {
         &self.catalog
     }
