@@ -107,6 +107,9 @@ impl<'a> Executor<'a> {
         for expr in &insert.values {
             values.push(eval(expr, &no_row)?);
         }
+        for (index, value) in values.iter().enumerate() {
+            check_not_null(self.catalog, &insert.table, index, value)?;
+        }
         self.storage.insert(&insert.table, Row::new(values))?;
         Ok(ExecResult::RowsAffected(1))
     }
@@ -123,7 +126,9 @@ impl<'a> Executor<'a> {
             if row_passes_filter(update.filter.as_ref(), row)? {
                 let mut changes = Vec::with_capacity(update.assignments.len());
                 for (column, expr) in &update.assignments {
-                    changes.push((column.index, eval(expr, row)?));
+                    let value = eval(expr, row)?;
+                    check_not_null(self.catalog, &update.table, column.index, &value)?;
+                    changes.push((column.index, value));
                 }
                 planned.push((row_index, changes));
             }
@@ -190,6 +195,13 @@ fn eval(expr: &BoundExpr, row: &Row) -> Result<Value> {
     match expr {
         BoundExpr::Column { index, .. } => Ok(row.values[*index].clone()),
         BoundExpr::Literal(value) => Ok(value.clone()),
+        BoundExpr::IsNull {
+            expr: inner,
+            negated,
+        } => {
+            let is_null = eval(inner, row)? == Value::Null;
+            Ok(Value::Boolean(if *negated { !is_null } else { is_null }))
+        }
         BoundExpr::Not(inner) => eval_not(eval(inner, row)?),
         BoundExpr::Neg(inner) => eval_neg(eval(inner, row)?),
         BoundExpr::BinaryOp { left, op, right } => {
@@ -334,7 +346,7 @@ fn eval_arith(op: BinaryOp, l: Value, r: Value) -> Result<Value> {
             other => {
                 return Err(ExecError::InternalTypeError(format!(
                     "eval_arith got non-arithmetic operator {other:?}"
-                )))
+                )));
             }
         };
         return result.map(Value::Integer).ok_or(ExecError::IntegerOverflow);
@@ -359,6 +371,32 @@ fn eval_arith(op: BinaryOp, l: Value, r: Value) -> Result<Value> {
         }
     };
     Ok(Value::Float(result))
+}
+
+/// Checks a value about to be written to `table`'s column at position
+/// `index` against that column's `NOT NULL` declaration. Runs against
+/// the value actually being written (post-evaluation) rather than
+/// checking the source expression for a literal `NULL`, since a
+/// computed expression like `1 + NULL` also evaluates to NULL.
+fn check_not_null(catalog: &Catalog, table: &str, index: usize, value: &Value) -> Result<()> {
+    if *value != Value::Null {
+        return Ok(());
+    }
+    let schema = catalog.schema(table).ok_or_else(|| {
+        ExecError::InternalTypeError(format!(
+            "table '{table}' missing from catalog during NOT NULL check"
+        ))
+    })?;
+    let column = schema.columns.get(index).ok_or_else(|| {
+        ExecError::InternalTypeError(format!(
+            "column index {index} out of range for table '{table}' during NOT NULL check"
+        ))
+    })?;
+    if column.nullable {
+        Ok(())
+    } else {
+        Err(ExecError::NotNullViolation { table: table.to_string(), column: column.name.clone() })
+    }
 }
 
 fn eval_neg(v: Value) -> Result<Value> {

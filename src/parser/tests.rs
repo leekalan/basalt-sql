@@ -365,3 +365,33 @@ fn parses_null_and_boolean_literals() {
         })]
     );
 }
+
+#[test]
+fn parses_is_null_and_is_not_null() {
+    let stmts = parse("SELECT * FROM t WHERE a IS NULL AND b IS NOT NULL;");
+    let Statement::Select(select) = &stmts[0] else {
+        panic!("expected select")
+    };
+    let Some(Expr::BinaryOp {
+        left,
+        op: BinaryOp::And,
+        right,
+    }) = &select.filter
+    else {
+        panic!("expected top-level AND");
+    };
+    assert_eq!(
+        **left,
+        Expr::IsNull {
+            expr: Box::new(Expr::Column("a".into())),
+            negated: false
+        }
+    );
+    assert_eq!(
+        **right,
+        Expr::IsNull {
+            expr: Box::new(Expr::Column("b".into())),
+            negated: true
+        }
+    );
+}

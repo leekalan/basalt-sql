@@ -154,3 +154,9 @@ fn tokenises_null_true_false_keywords() {
         ]
     );
 }
+
+#[test]
+fn tokenises_is_keyword() {
+    let tokens = Lexer::new("IS").tokenise().unwrap();
+    assert_eq!(tokens[0].kind, TokenKind::Is);
+}

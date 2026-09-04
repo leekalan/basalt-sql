@@ -317,3 +317,29 @@ fn null_literal_is_exempt_from_static_type_checks() {
     };
     assert!(analyser.bind_expr(&expr, schema, "users", true).is_ok());
 }
+
+#[test]
+fn binds_is_null_on_any_column_type() {
+    let catalog = test_catalog();
+    let bound = analyse(&catalog, "SELECT * FROM users WHERE name IS NULL;").unwrap();
+    let BoundStatement::Select(select) = bound else {
+        panic!("expected select")
+    };
+    assert!(matches!(
+        select.filter,
+        Some(BoundExpr::IsNull { negated: false, .. })
+    ));
+}
+
+#[test]
+fn binds_is_not_null() {
+    let catalog = test_catalog();
+    let bound = analyse(&catalog, "SELECT * FROM users WHERE balance IS NOT NULL;").unwrap();
+    let BoundStatement::Select(select) = bound else {
+        panic!("expected select")
+    };
+    assert!(matches!(
+        select.filter,
+        Some(BoundExpr::IsNull { negated: true, .. })
+    ));
+}

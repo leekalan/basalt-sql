@@ -83,6 +83,10 @@ pub enum BoundExpr {
         op: BinaryOp,
         right: Box<BoundExpr>,
     },
+    IsNull {
+        expr: Box<BoundExpr>,
+        negated: bool,
+    },
 }
 
 impl BoundExpr {
@@ -103,6 +107,10 @@ impl BoundExpr {
             BoundExpr::Literal(Value::Boolean(_)) => Some(DataType::Boolean),
             BoundExpr::Literal(Value::Null) => None,
             BoundExpr::Not(_) => Some(DataType::Boolean),
+            // Always a definite BOOLEAN, never UNKNOWN — `x IS NULL`
+            // is one of the few SQL constructs guaranteed not to
+            // itself produce NULL, regardless of what `expr` is.
+            BoundExpr::IsNull { .. } => Some(DataType::Boolean),
             BoundExpr::Neg(inner) => inner.static_type(),
             BoundExpr::BinaryOp { op, left, right } => match op {
                 BinaryOp::And

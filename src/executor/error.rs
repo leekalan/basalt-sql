@@ -24,6 +24,14 @@ pub enum ExecError {
     #[error("integer overflow")]
     IntegerOverflow,
 
+    /// An `INSERT` or `UPDATE` attempted to write NULL into a column
+    /// declared `NOT NULL`. Checked against the value actually being
+    /// written (post-evaluation), not just a literal `NULL`. An
+    /// expression like `1 + NULL` also evaluates to NULL and is
+    /// caught here too.
+    #[error("NULL value in column '{column}' violates NOT NULL constraint on table '{table}'")]
+    NotNullViolation { table: String, column: String },
+
     /// An operand's runtime type didn't match what the analyser's
     /// static type check should have already guaranteed. Should be
     /// unreachable in normal operation. Kept as a real error rather

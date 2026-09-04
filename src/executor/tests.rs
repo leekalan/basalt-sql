@@ -113,3 +113,36 @@ fn nan_comparisons_are_all_false_except_not_eq() {
         Value::Boolean(false)
     );
 }
+
+#[test]
+fn integer_overflow_errors() {
+    let err = eval_arith(BinaryOp::Add, Value::Integer(i64::MAX), Value::Integer(1)).unwrap_err();
+    assert_eq!(err, ExecError::IntegerOverflow);
+}
+
+#[test]
+fn integer_division_overflow_errors() {
+    // i64::MIN / -1 overflows in two's complement.
+    let err = eval_arith(BinaryOp::Div, Value::Integer(i64::MIN), Value::Integer(-1)).unwrap_err();
+    assert_eq!(err, ExecError::IntegerOverflow);
+}
+
+#[test]
+fn is_null_true_for_null_and_false_otherwise() {
+    let row = Row::new(vec![]);
+    let is_null = BoundExpr::IsNull { expr: Box::new(BoundExpr::Literal(Value::Null)), negated: false };
+    assert_eq!(eval(&is_null, &row).unwrap(), Value::Boolean(true));
+
+    let not_null = BoundExpr::IsNull {
+        expr: Box::new(BoundExpr::Literal(Value::Integer(1))),
+        negated: false,
+    };
+    assert_eq!(eval(&not_null, &row).unwrap(), Value::Boolean(false));
+}
+
+#[test]
+fn is_not_null_negates_correctly() {
+    let row = Row::new(vec![]);
+    let expr = BoundExpr::IsNull { expr: Box::new(BoundExpr::Literal(Value::Null)), negated: true };
+    assert_eq!(eval(&expr, &row).unwrap(), Value::Boolean(false));
+}

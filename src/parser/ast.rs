@@ -90,6 +90,12 @@ pub enum Expr {
         op: BinaryOp,
         right: Box<Expr>,
     },
+    /// `<expr> IS NULL` (`negated: false`) or `<expr> IS NOT NULL`
+    /// (`negated: true`). Kept separate from `BinaryOp` since `NULL`
+    /// here is syntax, not a value being compared — `x IS NULL` must
+    /// always resolve to a definite `true`/`false`, unlike `x = NULL`
+    /// which is always UNKNOWN under three-valued logic.
+    IsNull { expr: Box<Expr>, negated: bool },
 }
 
 /// Operators usable inside an [`Expr::BinaryOp`].

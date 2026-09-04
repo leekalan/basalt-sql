@@ -140,3 +140,36 @@ fn three_valued_logic_is_reachable_from_real_sql() {
         ExecResult::Rows(vec![Row::new(vec![Value::Integer(2)])])
     );
 }
+
+#[test]
+fn not_null_violation_is_rejected() {
+    let mut db = Database::new();
+    db.execute("CREATE TABLE t (id INTEGER NOT NULL);").unwrap();
+    let err = db.execute("INSERT INTO t VALUES (NULL);").unwrap_err();
+    assert!(matches!(err, Error::Exec(ExecError::NotNullViolation { .. })));
+}
+
+#[test]
+fn is_null_and_is_not_null_are_queryable_end_to_end() {
+    let mut db = Database::new();
+    db.execute("CREATE TABLE t (id INTEGER, note TEXT);").unwrap();
+    db.execute("INSERT INTO t VALUES (1, NULL);").unwrap();
+    db.execute("INSERT INTO t VALUES (2, 'hi');").unwrap();
+
+    let nulls = db.execute("SELECT id FROM t WHERE note IS NULL;").unwrap().unwrap();
+    assert_eq!(nulls, ExecResult::Rows(vec![Row::new(vec![Value::Integer(1)])]));
+
+    let non_nulls = db.execute("SELECT id FROM t WHERE note IS NOT NULL;").unwrap().unwrap();
+    assert_eq!(non_nulls, ExecResult::Rows(vec![Row::new(vec![Value::Integer(2)])]));
+}
+
+#[test]
+fn integer_overflow_is_a_runtime_error() {
+    let mut db = Database::new();
+    db.execute("CREATE TABLE t (id INTEGER);").unwrap();
+    db.execute("INSERT INTO t VALUES (1);").unwrap();
+    let err = db
+        .execute(&format!("SELECT * FROM t WHERE id + {} = 0;", i64::MAX))
+        .unwrap_err();
+    assert!(matches!(err, Error::Exec(ExecError::IntegerOverflow)));
+}

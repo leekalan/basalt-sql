@@ -22,7 +22,7 @@
 //! or_expr     := and_expr (OR and_expr)*
 //! and_expr    := not_expr (AND not_expr)*
 //! not_expr    := NOT not_expr | comparison
-//! comparison  := term (comp_op term)?
+//! comparison  := term ((comp_op term) | (IS NOT? NULL))?
 //! term        := factor ((PLUS | MINUS) factor)*
 //! factor      := unary ((STAR | SLASH) unary)*
 //! unary       := MINUS unary | primary
@@ -263,6 +263,20 @@ impl Parser {
 
     fn parse_comparison(&mut self) -> Result<Expr> {
         let left = self.parse_term()?;
+        if self.check(&TokenKind::Is) {
+            self.advance();
+            let negated = if self.check(&TokenKind::Not) {
+                self.advance();
+                true
+            } else {
+                false
+            };
+            self.expect(TokenKind::Null, "NULL")?;
+            return Ok(Expr::IsNull {
+                expr: Box::new(left),
+                negated,
+            });
+        }
         if let Some(op) = self.match_comparison_op() {
             let right = self.parse_term()?;
             Ok(Expr::BinaryOp {

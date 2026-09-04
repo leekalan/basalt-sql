@@ -28,6 +28,7 @@ pub enum TokenKind {
     True,
     False,
     Null,
+    Is,
     /// A user-defined name (table, column, etc). This can be anything
     /// alphabetic that isn't a reserved keyword.
     Ident(String),
@@ -255,6 +256,7 @@ impl<'a> Lexer<'a> {
             "TRUE" => TokenKind::True,
             "FALSE" => TokenKind::False,
             "NULL" => TokenKind::Null,
+            "IS" => TokenKind::Is,
             _ => TokenKind::Ident(word.to_string()),
         }
     }

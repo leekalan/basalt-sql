@@ -267,6 +267,15 @@ impl<'a> Analyser<'a> {
                     right: Box::new(right),
                 })
             }
+            Expr::IsNull { expr, negated } => {
+                // No type restriction. IS NULL is valid on a column
+                // or expression of any type.
+                let inner = self.bind_expr(expr, schema, table, allow_columns)?;
+                Ok(BoundExpr::IsNull {
+                    expr: Box::new(inner),
+                    negated: *negated,
+                })
+            }
         }
     }
 }
