@@ -395,7 +395,10 @@ fn check_not_null(catalog: &Catalog, table: &str, index: usize, value: &Value) -
     if column.nullable {
         Ok(())
     } else {
-        Err(ExecError::NotNullViolation { table: table.to_string(), column: column.name.clone() })
+        Err(ExecError::NotNullViolation {
+            table: table.to_string(),
+            column: column.name.clone(),
+        })
     }
 }
 

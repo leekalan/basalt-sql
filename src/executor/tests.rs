@@ -130,7 +130,10 @@ fn integer_division_overflow_errors() {
 #[test]
 fn is_null_true_for_null_and_false_otherwise() {
     let row = Row::new(vec![]);
-    let is_null = BoundExpr::IsNull { expr: Box::new(BoundExpr::Literal(Value::Null)), negated: false };
+    let is_null = BoundExpr::IsNull {
+        expr: Box::new(BoundExpr::Literal(Value::Null)),
+        negated: false,
+    };
     assert_eq!(eval(&is_null, &row).unwrap(), Value::Boolean(true));
 
     let not_null = BoundExpr::IsNull {
@@ -143,6 +146,9 @@ fn is_null_true_for_null_and_false_otherwise() {
 #[test]
 fn is_not_null_negates_correctly() {
     let row = Row::new(vec![]);
-    let expr = BoundExpr::IsNull { expr: Box::new(BoundExpr::Literal(Value::Null)), negated: true };
+    let expr = BoundExpr::IsNull {
+        expr: Box::new(BoundExpr::Literal(Value::Null)),
+        negated: true,
+    };
     assert_eq!(eval(&expr, &row).unwrap(), Value::Boolean(false));
 }
