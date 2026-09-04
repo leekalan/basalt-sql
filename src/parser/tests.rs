@@ -349,3 +349,19 @@ fn parses_computed_expression_in_insert_and_set() {
         ]
     );
 }
+
+#[test]
+fn parses_null_and_boolean_literals() {
+    let stmts = parse("INSERT INTO t VALUES (NULL, TRUE, FALSE);");
+    assert_eq!(
+        stmts,
+        vec![Statement::Insert(InsertStatement {
+            table: "t".into(),
+            values: vec![
+                Expr::Literal(Value::Null),
+                Expr::Literal(Value::Boolean(true)),
+                Expr::Literal(Value::Boolean(false)),
+            ],
+        })]
+    );
+}

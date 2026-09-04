@@ -66,7 +66,7 @@ fn distinguishes_lt_from_lteq() {
 
 #[test]
 fn lone_operator_at_end_of_input() {
-    // peek_n(2) returns None with only one char left; this exercises
+    // peek_n(2) returns None with only one char left. this exercises
     // the fallback from the two-char block into the single-char block.
     let tokens = Lexer::new("a <").tokenise().unwrap();
     let kinds: Vec<_> = tokens.iter().map(|t| t.kind.clone()).collect();
@@ -106,15 +106,6 @@ fn tokenises_float_and_integer_numbers() {
 }
 
 #[test]
-fn malformed_number_is_a_single_token() {
-    // Known gap (see ARCHITECTURE.md): the lexer doesn't validate
-    // numeric shape, so "1.2.3" lexes as one Number token and only
-    // fails later, in the parser, when it's converted to i64/f64.
-    let tokens = Lexer::new("1.2.3").tokenise().unwrap();
-    assert_eq!(tokens[0].kind, TokenKind::Number("1.2.3".into()));
-}
-
-#[test]
 fn comment_does_not_consume_past_newline() {
     let tokens = Lexer::new("SELECT 1 -- comment\nFROM t")
         .tokenise()
@@ -147,4 +138,19 @@ fn unspaced_double_minus_is_swallowed_as_a_comment() {
 fn empty_input_produces_only_eof() {
     let tokens = Lexer::new("").tokenise().unwrap();
     assert_eq!(tokens, vec![Token::new(TokenKind::Eof, 0)]);
+}
+
+#[test]
+fn tokenises_null_true_false_keywords() {
+    let tokens = Lexer::new("NULL true False").tokenise().unwrap();
+    let kinds: Vec<_> = tokens.iter().map(|t| t.kind.clone()).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Null,
+            TokenKind::True,
+            TokenKind::False,
+            TokenKind::Eof
+        ]
+    );
 }

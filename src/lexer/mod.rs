@@ -8,7 +8,7 @@ pub use error::{LexError, Result};
 mod tests;
 
 /// The category of a single token, plus any data it carries (identifier
-/// text, literal value, etc).
+/// text, literal value etc).
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Select,
@@ -25,11 +25,14 @@ pub enum TokenKind {
     And,
     Or,
     Not,
+    True,
+    False,
+    Null,
     /// A user-defined name (table, column, etc). This can be anything
     /// alphabetic that isn't a reserved keyword.
     Ident(String),
     /// A numeric literal stored as the original source text (not yet
-    /// parsed into [i64] or [f64]).
+    /// parsed into [i64] or [f64] or whatever else it might be).
     Number(String),
     /// A single-quoted string literal with quotes stripped and
     /// contents unescaped.
@@ -148,7 +151,7 @@ impl<'a> Lexer<'a> {
         Err(LexError::unexpected_char(self.peek().unwrap(), start))
     }
 
-    /// Returns the next character without consuming it.
+    /// Returns the next character without consuming it
     fn peek(&self) -> Option<char> {
         self.src[self.pos..].chars().next()
     }
@@ -166,7 +169,7 @@ impl<'a> Lexer<'a> {
         Some(s)
     }
 
-    /// Advances past whitespace and `--`-style line comments. Called
+    /// Advances past whitespace and `--` style line comments. Called
     /// before scanning every token so neither has to be handled inside
     /// individual token-reading functions.
     fn skip_whitespace_and_comments(&mut self) {
@@ -222,7 +225,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Reads an identifier or keyword and classifies it. Reserved words
-    /// are matched case-insensitively against `TokenKind` variants,
+    /// are matched case insensitively against `TokenKind` variants,
     /// everything else becomes `TokenKind::Ident`.
     fn read_ident_or_keyword(&mut self) -> TokenKind {
         let start = self.pos;
@@ -249,6 +252,9 @@ impl<'a> Lexer<'a> {
             "AND" => TokenKind::And,
             "OR" => TokenKind::Or,
             "NOT" => TokenKind::Not,
+            "TRUE" => TokenKind::True,
+            "FALSE" => TokenKind::False,
+            "NULL" => TokenKind::Null,
             _ => TokenKind::Ident(word.to_string()),
         }
     }

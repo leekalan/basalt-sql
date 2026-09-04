@@ -73,7 +73,7 @@ pub struct ColumnDecl {
     pub nullable: bool,
 }
 
-/// A `WHERE`-clause expression tree.
+/// A `WHERE` clause expression tree.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     /// A bare column reference, e.g. `age` in `WHERE age > 3`.

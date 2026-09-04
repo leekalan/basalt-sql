@@ -187,13 +187,7 @@ impl Parser {
         let mut nullable = true;
         if self.check(&TokenKind::Not) {
             self.advance();
-            // `NULL` isn't a reserved keyword in the lexer, so it
-            // arrives here as a plain identifier rather than its own
-            // TokenKind.
-            let word = self.expect_ident()?;
-            if !word.eq_ignore_ascii_case("null") {
-                return Err(self.error("NULL after NOT"));
-            }
+            self.expect(TokenKind::Null, "NULL")?;
             nullable = false;
         }
         Ok(ColumnDecl { name, ty, nullable })
@@ -367,9 +361,11 @@ impl Parser {
                 self.advance();
                 Ok(Expr::Column(name))
             }
-            TokenKind::Number(_) | TokenKind::StringLit(_) => {
-                Ok(Expr::Literal(self.parse_literal()?))
-            }
+            TokenKind::Number(_)
+            | TokenKind::StringLit(_)
+            | TokenKind::Null
+            | TokenKind::True
+            | TokenKind::False => Ok(Expr::Literal(self.parse_literal()?)),
             _ => Err(self.error("a column, literal, or '('")),
         }
     }
@@ -384,6 +380,18 @@ impl Parser {
             TokenKind::StringLit(text) => {
                 self.advance();
                 Ok(Value::Text(text.clone()))
+            }
+            TokenKind::Null => {
+                self.advance();
+                Ok(Value::Null)
+            }
+            TokenKind::True => {
+                self.advance();
+                Ok(Value::Boolean(true))
+            }
+            TokenKind::False => {
+                self.advance();
+                Ok(Value::Boolean(false))
             }
             _ => Err(self.error("a literal value")),
         }

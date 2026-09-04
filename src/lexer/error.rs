@@ -11,7 +11,7 @@ pub type Result<T> = std::result::Result<T, LexError>;
 #[derive(Debug, Error, PartialEq, Eq, Clone)]
 pub enum LexError {
     /// A character was encountered that doesn't start any valid token
-    /// (e.g. `$`, `@`, or other symbols outside the supported grammar).
+    /// (like `$`, `@`, or other symbols outside the supported grammar).
     #[error("unexpected character '{ch}' at offset {offset}")]
     UnexpectedChar {
         /// The offending character.
