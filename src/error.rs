@@ -19,6 +19,10 @@ pub enum Error {
     #[error(transparent)]
     Parse(#[from] crate::parser::ParseError),
 
+    /// A semantic error while validating an AST.
+    #[error(transparent)]
+    Analyse(#[from] crate::analyser::AnalyseError),
+
     /// A wrapped standard I/O error, for future file-backed storage.
     #[error(transparent)]
     Io(#[from] std::io::Error),
